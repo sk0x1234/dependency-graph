@@ -33,7 +33,7 @@ const showDownstream = args.includes('--downstream') || args.includes('--all') |
 const verbose = args.includes('--all');
 
 // Load package-lock.json
-const lockFilePath = path.join(__dirname, 'package-lock.json');
+const lockFilePath = path.join(process.cwd(), 'package-lock.json');
 let packageLock;
 
 try {
