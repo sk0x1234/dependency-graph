@@ -174,19 +174,30 @@ Downstream chains: 1
 
 ## 3. `dep-stats.js` - Dependency Statistics
 
-Show statistics about packages and their dependencies.
+Show statistics about packages and their dependencies, or generate a full dependency tree.
 
 ### Usage
 
 ```bash
-node dep-stats.js [package-name]
+node dep-stats.js [package-name] [options]
 ```
+
+### Options
+
+- `--tree` - Generate full dependency tree visualization
+- `--depth N` - Limit tree depth (default: 2)
 
 ### Examples
 
 ```bash
 # Overall statistics
 node dep-stats.js
+
+# Generate full dependency tree
+node dep-stats.js --tree
+
+# Tree with custom depth
+node dep-stats.js --tree --depth 3
 
 # Stats for specific package
 node dep-stats.js @clover/data-layer
@@ -209,6 +220,28 @@ Avg deps per package:    3.18
 Largest dependency tree:
   webpack-dev-server
   28 dependencies
+```
+
+### Sample Output - Dependency Tree
+
+```
+🌳 Full Dependency Tree
+════════════════════════════════════════════════════════════
+
+Total root dependencies: 108
+
+├── react (5)
+│   ├── loose-envify (0)
+│   └── object-assign (0)
+├── webpack (15)
+│   ├── webpack-cli (8)
+│   ├── webpack-dev-server (12)
+│   │   ├── express (4)
+│   │   ├── ws (0)
+│   │   └── ...
+│   └── ...
+├── typescript (0)
+└── ...
 ```
 
 ### Sample Output - Package-Specific
@@ -280,6 +313,12 @@ node trace-dependency.js grandparent-package --upstream
 ```bash
 # See overall stats
 node dep-stats.js
+
+# View full dependency tree
+node dep-stats.js --tree
+
+# Tree with deeper levels
+node dep-stats.js --tree --depth 4
 
 # Check critical packages
 node dep-stats.js react
