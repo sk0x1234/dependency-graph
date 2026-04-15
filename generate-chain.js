@@ -26,7 +26,24 @@ if (args.length === 0) {
 const targetPackage = args[0];
 const outputFile = args[1] || `chain-${targetPackage}.txt`;
 
-const lockFilePath = path.join(__dirname, 'package-lock.json');
+// Find package-lock.json by traversing up directory tree
+function findPackageLock() {
+  let currentDir = process.cwd();
+  const root = path.parse(currentDir).root;
+  
+  while (currentDir !== root) {
+    const lockPath = path.join(currentDir, 'package-lock.json');
+    if (fs.existsSync(lockPath)) {
+      return lockPath;
+    }
+    currentDir = path.dirname(currentDir);
+  }
+  
+  // If not found in parent dirs, try current working directory
+  return path.join(process.cwd(), 'package-lock.json');
+}
+
+const lockFilePath = findPackageLock();
 let packageLock;
 
 try {
@@ -128,17 +145,14 @@ function generateOutput() {
   }
 
   let output = '';
-  output += `DEPENDENCY CHAIN ANALYSIS\n`;
-  output += `${'='.repeat(80)}\n\n`;
+  output += `DEPENDENCY CHAIN ANALYSIS\n\n`;
 
   output += `Target Package: ${targetPackage}\n`;
-  output += `Version: ${pkg.version}\n`;
-  output += `Path: ${pkg.path}\n\n`;
+  output += `Version:        ${pkg.version}\n`;
+  output += `Path:           ${pkg.path}\n\n`;
 
   // Upstream chains
-  output += `${'_'.repeat(80)}\n`;
-  output += `UPSTREAM DEPENDENCIES (What depends on ${targetPackage})\n`;
-  output += `${'_'.repeat(80)}\n\n`;
+  output += `UPSTREAM DEPENDENCIES (What depends on ${targetPackage})\n\n`;
 
   const upstreamChains = buildUpstreamChain(targetPackage);
   console.log(`Building upstream chain...`);
@@ -149,21 +163,24 @@ function generateOutput() {
     upstreamChains.forEach((chain, idx) => {
       if (chain.length === 0) return;
       output += `Chain ${idx + 1}:\n`;
-      output += `${targetPackage} (${pkg.version})`;
-      for (const dep of chain) {
+      output += `${targetPackage} (${pkg.version})\n`;
+      
+      for (let i = 0; i < chain.length; i++) {
+        const dep = chain[i];
         // Skip empty names (root dependencies)
         if (!dep.name || dep.name.trim() === '') continue;
+        
         const depDisplay = typeof dep === 'string' ? dep : `${dep.name} (${dep.version})`;
-        output += `\n  ← ${depDisplay}`;
+        const indent = '  '.repeat(i + 1);
+        
+        output += `${indent}← ${depDisplay}\n`;
       }
-      output += `\n\n`;
+      output += `\n`;
     });
   }
 
   // Downstream chains
-  output += `${'_'.repeat(80)}\n`;
-  output += `DOWNSTREAM DEPENDENCIES (What ${targetPackage} depends on)\n`;
-  output += `${'_'.repeat(80)}\n\n`;
+  output += `DOWNSTREAM DEPENDENCIES (What ${targetPackage} depends on)\n\n`;
 
   const downstreamChains = buildDownstreamChain(targetPackage);
   console.log(`Building downstream chain...`);
@@ -176,24 +193,26 @@ function generateOutput() {
     chainsToShow.forEach((chain, idx) => {
       if (chain.length === 0) return;
       output += `Chain ${idx + 1}:\n`;
-      output += `${targetPackage} (${pkg.version})`;
-      for (const dep of chain) {
+      output += `${targetPackage} (${pkg.version})\n`;
+      
+      for (let i = 0; i < chain.length; i++) {
+        const dep = chain[i];
         const depDisplay = typeof dep === 'string' ? dep : `${dep.name} (${dep.version})`;
-        output += `\n  → ${depDisplay}`;
+        const indent = '  '.repeat(i + 1);
+        
+        output += `${indent}→ ${depDisplay}\n`;
       }
-      output += `\n\n`;
+      output += `\n`;
     });
 
     if (downstreamChains.length > 10) {
-      output += `... and ${downstreamChains.length - 10} more chains (truncated)\n\n`;
+      output += `\n... and ${downstreamChains.length - 10} more chains (truncated)\n\n`;
     }
   }
 
   // Summary
-  output += `${'='.repeat(80)}\n`;
   output += `SUMMARY\n`;
-  output += `${'='.repeat(80)}\n`;
-  output += `Upstream chains: ${upstreamChains.filter(c => c.length > 0).length}\n`;
+  output += `Upstream chains:   ${upstreamChains.filter(c => c.length > 0).length}\n`;
   output += `Downstream chains: ${Math.min(downstreamChains.filter(c => c.length > 0).length, 10)}`;
   if (downstreamChains.length > 10) output += ` (+ more)`;
   output += `\n`;
