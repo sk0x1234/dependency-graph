@@ -7,7 +7,7 @@ Three utility scripts to analyze and trace dependencies in `package-lock.json`.
 ### Option 1: Copy to your repo (Recommended)
 
 ```bash
-# Download the scripts to your project root
+# Download and run the scripts remotely
 curl -s https://raw.githubusercontent.com/sk0x1234/dependency-graph/refs/heads/main/trace-dependency.js | node /dev/stdin <package-name>
 curl -s https://raw.githubusercontent.com/sk0x1234/dependency-graph/refs/heads/main/generate-chain.js | node /dev/stdin <package-name>
 curl -s https://raw.githubusercontent.com/sk0x1234/dependency-graph/refs/heads/main/dep-stats.js | node /dev/stdin
@@ -29,13 +29,13 @@ node dep-stats.js
 
 ```bash
 # Trace a package
-curl -s https://raw.githubusercontent.com/sk0x1234/dependency-graph/refs/heads/main/trace-dependency.js | node /dev/stdin brace-expansion
+curl -s https://raw.githubusercontent.com/sk0x1234/dependency-graph/refs/heads/main/trace-dependency.js | node - brace-expansion
 
 # Generate full chain
-curl -s https://raw.githubusercontent.com/sk0x1234/dependency-graph/refs/heads/main/generate-chain.js | node /dev/stdin react-query
+curl -s https://raw.githubusercontent.com/sk0x1234/dependency-graph/refs/heads/main/generate-chain.js | node - react-query
 
 # Show stats
-curl -s https://raw.githubusercontent.com/sk0x1234/dependency-graph/refs/heads/main/dep-stats.js | node /dev/stdin
+curl -s https://raw.githubusercontent.com/sk0x1234/dependency-graph/refs/heads/main/dep-stats.js | node -
 ```
 
 ### Option 3: Add to package.json
@@ -88,7 +88,7 @@ node trace-dependency.js react-query --upstream
 node trace-dependency.js rimraf --downstream
 
 # Verbose with full chains
-node trace-dependency.js ata-layer --all
+node trace-dependency.js @clover/data-layer --all
 ```
 
 ### Sample Output
@@ -153,7 +153,7 @@ brace-expansion
   ← rimraf
   ← broadcast-channel
   ← react-query
-  ← data-layer
+  ← @clover/data-layer
 
 ________________________________________________________________________________
 DOWNSTREAM DEPENDENCIES (What brace-expansion depends on)
@@ -189,7 +189,7 @@ node dep-stats.js [package-name]
 node dep-stats.js
 
 # Stats for specific package
-node dep-stats.js data-layer
+node dep-stats.js @clover/data-layer
 
 # Check any package
 node dep-stats.js react
@@ -214,16 +214,16 @@ Largest dependency tree:
 ### Sample Output - Package-Specific
 
 ```
-📦 Package: data-layer
+📦 Package: @clover/data-layer
 ══════════════════════════════════════════════════
 Version:    1.14.1
-Path:       node_modules//data-layer
+Path:       node_modules/@clover/data-layer
 Dependencies:       6
 Depended on by:     1 packages
 
 Direct dependencies:
-  • @microapp/utils-browser@^0.8.1
-  • @native/message-hub@^0.0.21
+  • @clover-microapp/utils-browser@^0.8.1
+  • @clover-native/message-hub@^0.0.21
   • html-entities@^2.5.2
   • react-query@^3.39.3
   • uuid@10.0.0
@@ -246,7 +246,7 @@ node generate-chain.js brace-expansion
 
 **Result shows the full chain:**
 ```
-@data-layer (production)
+@clover/data-layer (production)
   → react-query
     → broadcast-channel
       → rimraf
@@ -258,8 +258,8 @@ node generate-chain.js brace-expansion
 ### 📦 Check package dependencies
 
 ```bash
-node dep-stats.js @data-layer
-# Shows all 6 dependencies of @data-layer
+node dep-stats.js @clover/data-layer
+# Shows all 6 dependencies of @clover/data-layer
 ```
 
 ### 🔗 Trace a specific dependency issue
@@ -323,10 +323,10 @@ Package Details:
       → rimraf (^3.0.2)
         → broadcast-channel (^3.4.1)
           → react-query (^3.39.3)
-            → @data-layer (v1.14.1)
+            → @clover/data-layer (v1.14.1)
 ```
 
-This helped identify that `@data-layer` → `react-query` → `broadcast-channel` was the source.
+This helped identify that `@clover/data-layer` → `react-query` → `broadcast-channel` was the source.
 
 ---
 
@@ -359,7 +359,7 @@ deps
 
 ```bash
 node dep-stats.js > project-deps.txt
-node generate-chain.js @data-layer > data-layer-chain.txt
+node generate-chain.js @clover/data-layer > data-layer-chain.txt
 ```
 
 ---
@@ -379,14 +379,17 @@ node dep-stats.js
 
 ### Script not found when using curl
 
-Make sure you're piping correctly:
+Use `node -` to read the script from stdin:
 
 ```bash
-# ❌ Wrong - tries to execute brace-expansion as a module
-curl -s https://... | node brace-expansion
+# ✅ Correct - pass dash to read from stdin
+curl -s https://raw.githubusercontent.com/sk0x1234/dependency-graph/refs/heads/main/generate-chain.js | node - brace-expansion
 
-# ✅ Correct - passes brace-expansion to the script
-curl -s https://... | node /dev/stdin brace-expansion
+# Also correct - use /dev/stdin
+curl -s https://raw.githubusercontent.com/sk0x1234/dependency-graph/refs/heads/main/generate-chain.js | node /dev/stdin brace-expansion
+
+# ❌ Wrong - treats arguments as file paths
+curl -s https://... | node brace-expansion
 ```
 
 ### Slow on very large lock files
